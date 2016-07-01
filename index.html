@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
 
     <style>
         body> div {
@@ -26,12 +27,18 @@
             max-width: 100%;
         }
 
-        #o-container,
-        #p-container {
+        #artwork> div {
             position: absolute;
             height: inherit;
             width: 100%;
             text-align: center;
+        }
+
+        #loading-msg,
+        #upload-error-msg {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .img-show {
@@ -56,10 +63,19 @@
     </div>
     <div id="artwork">
         <div id="o-container">
+
             <img src="" alt="" id="origin">
         </div>
         <div id="p-container">
             <img src="" alt="" id="processed">
+        </div>
+        <div id="loading-msg" class="hide">
+            <h1><i class="fa fa-spinner fa-spin fa-fw"></i></h1>
+            <h1>圖片處理中</h1>
+        </div>
+        <div id="upload-error-msg" class="hide">
+            <h1><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></h1>
+            <h1>請開啟正確的圖片格式</h1>
         </div>
     </div>
     <div id="buttons">
@@ -80,10 +96,10 @@
         }
 
         const downBtn = document.querySelector('#down-btn');
+        const dl = document.createElement('a');
+        dl.download = 'outline.png';
+
         downBtn.onclick = function(event) {
-            const dl = document.createElement('a');
-            const ext = pImg.src.match(/image\/(\w+)/)[1];
-            dl.download = 'outline.' + ext;
             dl.href = pImg.src;
 
             /* Firefox solution*/
@@ -93,6 +109,7 @@
         }
 
         const fileInput = document.querySelector('#file-input');
+        const loadingMsg = document.querySelector('#loading-msg');
         fileInput.onchange = function(event) {
             const file = this.files[0];
             fr.onload = imgUpdate;
@@ -105,6 +122,8 @@
         const pImg = document.querySelector('#processed');
         const oCon = document.querySelector('#o-container');
         const pCon = document.querySelector('#p-container');
+        const uploadErrorMsg = document.querySelector('#upload-error-msg');
+
 
         const fr = new FileReader();
         const canvas = document.createElement('canvas');
@@ -122,11 +141,22 @@
 
         function imgUpdate() {
             oImg.onload = calculate;
-            oImg.src = this.result;
-            pCon.className = '';
+            const mime = getMIMEFromDataURL(this.result);
+
+            if (mime.type === 'image') {
+                oImg.src = this.result;
+                pCon.className = '';
+                uploadErrorMsg.className = 'hide';
+                loadingMsg.className = '';
+            } else {
+                uploadErrorMsg.className = '';
+                loadingMsg.className = 'hide';
+            }
         }
 
         function calculate() {
+            loadingMsg.className = 'hide';
+
             const ch = canvas.height = this.naturalHeight;
             const cw = canvas.width = this.naturalWidth;
             ctx = canvas.getContext('2d');
@@ -150,9 +180,10 @@
                     const l = max(0, w - 1);
                     const r = min(cw - 1, w + 1);
 
-                    mina.push(255 - max(imgray[u * cw + l], imgray[u * cw + w], imgray[u * cw + r],
-                                        imgray[h * cw + l], imgray[h * cw + w], imgray[h * cw + r],
-                                        imgray[d * cw + l], imgray[d * cw + w], imgray[d * cw + r]));
+                    mina.push(255 - max(
+                        imgray[u * cw + l], imgray[u * cw + w], imgray[u * cw + r],
+                        imgray[h * cw + l], imgray[h * cw + w], imgray[h * cw + r],
+                        imgray[d * cw + l], imgray[d * cw + w], imgray[d * cw + r]));
                 }
             }
 
@@ -169,6 +200,15 @@
 
             ctx.putImageData(imdata, 0, 0);
             pImg.src = canvas.toDataURL();
+        }
+
+        function getMIMEFromDataURL(dataurl) {
+            const m = dataurl.slice(0, dataurl.indexOf(';')).match(/data:((\w+)\/(\w+))/);
+            return {
+                MIME: m[1],
+                type: m[2],
+                subtype: m[3],
+            }
         }
     </script>
 
