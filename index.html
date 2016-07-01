@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>線稿提取器</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.11/pixi.min.js"></script>
+
+    <style>
+        body> div {
+            text-align: center;
+            margin: 10px auto;
+        }
+
+        #artwork {
+            max-height: 80vh;
+            max-width: 90vw;
+            position: relative;
+        }
+
+        #artwork img {
+            display: inline-block;
+            max-height: 100%;
+            max-width: 100%;
+        }
+
+        #o-container,
+        #p-container {
+            position: absolute;
+            height: inherit;
+            width: 100%;
+            text-align: center;
+        }
+
+        .img-show {
+            animation: imgshow 2s forwards linear;
+        }
+
+        @keyframes imgshow {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="title">
+        <h1>線稿提取器</h1>
+        <h2>實作自 <a href="http://forum.gamer.com.tw/Co.php?bsn=60143&sn=76489">kevin11022@巴哈姆特</a></h2>
+    </div>
+    <div id="artwork">
+        <div id="o-container">
+            <img src="" alt="" id="origin">
+        </div>
+        <div id="p-container">
+            <img src="" alt="" id="processed">
+        </div>
+    </div>
+    <div id="buttons">
+        <button id="open-btn" class="btn btn-default btn-lg">
+            <span class="glyphicon glyphicon-open" aria-hidden="true"></span>開啟
+            <input id="file-input" type="file" style="display: none;">
+        </button>
+        <button id="down-btn" class="btn btn-default btn-lg">
+            <span class="glyphicon glyphicon-save" aria-hidden="true"></span>下載
+        </button>
+    </div>
+    <script>
+        const [max, min] = [Math.max, Math.min];
+
+        const openBtn = document.querySelector('#open-btn');
+        openBtn.onclick = function(event) {
+            fileInput.click();
+        }
+
+        const downBtn = document.querySelector('#down-btn');
+        downBtn.onclick = function(event) {
+            const dl = document.createElement('a');
+            const ext = pImg.src.match(/image\/(\w+)/)[1];
+            dl.download = 'outline.' + ext;
+            dl.href = pImg.src;
+            
+            /* Firefox solution*/
+            document.body.appendChild(dl);
+            dl.click();
+            document.body.removeChild(dl);
+        }
+
+        const fileInput = document.querySelector('#file-input');
+        fileInput.onchange = function(event) {
+            const file = this.files[0];
+            fr.onload = imgUpdate;
+            fr.readAsDataURL(file);
+            oImg.src = pImg.src = '';
+        }
+
+        const artworkArea = document.querySelector('#artwork');
+        const oImg = document.querySelector('#origin');
+        const pImg = document.querySelector('#processed');
+        const oCon = document.querySelector('#o-container');
+        const pCon = document.querySelector('#p-container');
+
+        const fr = new FileReader();
+        const canvas = document.createElement('canvas');
+
+        pImg.onload = function() {
+            pCon.className = 'img-show';
+        }
+
+        window.onresize = betterHeight;
+
+        function betterHeight() {
+            artworkArea.style.height = ~~Math.max(window.innerHeight * 0.7, 500) + 'px';
+        }
+
+        function imgUpdate() {
+            oImg.onload = calculate;
+            oImg.src = this.result;
+            pCon.className = '';
+        }
+
+        function calculate() {
+            const ch = canvas.height = this.naturalHeight;
+            const cw = canvas.width = this.naturalWidth;
+            ctx = canvas.getContext('2d');
+            ctx.drawImage(this, 0, 0);
+
+            const imdata = ctx.getImageData(0, 0, cw, ch);
+
+            const c = imdata.data;
+            const imgray = [];
+
+            for (let i = 0; i < c.length; i += 4) {
+                const Y = (0.3 * c[i] + 0.59 * c[i + 1] + 0.11 * c[i + 2]);
+                imgray.push(Y);
+            }
+
+            const mina = []
+            for (let h = 0; h < ch; h++) {
+                for (let w = 0; w < cw; w++) {
+                    const u = max(0, h - 1);
+                    const d = min(ch - 1, h + 1);
+                    const l = max(0, w - 1);
+                    const r = min(cw - 1, w + 1);
+
+                    mina.push(255 - max(imgray[u * cw + l], imgray[u * cw + w], imgray[u * cw + r],
+                                        imgray[h * cw + l], imgray[h * cw + w], imgray[h * cw + r],
+                                        imgray[d * cw + l], imgray[d * cw + w], imgray[d * cw + r]));
+                }
+            }
+
+            const result = [];
+            for (let i = 0; i < imgray.length; i++) {
+                const Y = imgray[i];
+                const M = mina[i]
+                result.push(Y + (Y * M) / (255 - M));
+            }
+
+            for (let i = 0; i < c.length; i += 4) {
+                c[i] = c[i + 1] = c[i + 2] = result[i / 4];
+            }
+
+            ctx.putImageData(imdata, 0, 0);
+            pImg.src = canvas.toDataURL();
+        }
+    </script>
+
+</body>
+
+</html>
