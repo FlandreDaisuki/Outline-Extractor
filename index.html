@@ -53,6 +53,26 @@
                 opacity: 1;
             }
         }
+
+        #title> h1 {
+            text-shadow: 0px 0px 1px white;
+            animation: title-outline 4s infinite ease-in-out;
+        }
+
+        @keyframes title-outline {
+            from {
+                text-shadow: 0px 0px 1px white;
+                color: black;
+            }
+            75% {
+                text-shadow: 0px 0px 1px black;
+                color: white;
+            }
+            to {
+                text-shadow: 0px 0px 1px white;
+                color: black;
+            }
+        }
     </style>
 </head>
 
