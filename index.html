@@ -86,7 +86,7 @@
             const ext = pImg.src.match(/image\/(\w+)/)[1];
             dl.download = 'outline.' + ext;
             dl.href = pImg.src;
-            
+
             /* Firefox solution*/
             document.body.appendChild(dl);
             dl.click();
@@ -119,6 +119,7 @@
         function betterHeight() {
             artworkArea.style.height = ~~Math.max(window.innerHeight * 0.7, 500) + 'px';
         }
+        betterHeight();
 
         function imgUpdate() {
             oImg.onload = calculate;
